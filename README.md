@@ -10,7 +10,7 @@ row: **Spend** (the bar fills as you spend, the menu bar shows this month's
 cost) or **Remaining** (the bar drains as credit is used, the menu bar shows the
 balance left). The choice persists across launches.
 
-![Menu bar item](docs/menubar-clean.png)
+![Menu bar item, both readings](docs/menubar-clean.png)
 
 ![Dropdown](docs/popover.png)
 
@@ -106,6 +106,7 @@ The binary carries a few developer switches:
 |---|---|
 | `--verify` | print account, balance, and spend without the UI |
 | `--render-popover <path>` | render the dropdown to a PNG |
+| `--render-status <path>` | render the menu bar item in both readings |
 | `--sample` | with the above, force sample data instead of live values |
 | `--install-login-item` | register the app to start at login |
 

@@ -9,6 +9,7 @@ struct LithosAIBarApp: App {
 
     /// `--verify` runs the data path headlessly instead of showing the menu bar.
     /// `--render-popover <path>` writes the dropdown to a PNG for layout checks.
+    /// `--render-status <path>` writes the menu bar item in both readings.
     /// `--install-login-item` registers the app to start at login.
     init() {
         if CommandLine.arguments.contains("--verify") {
@@ -23,6 +24,15 @@ struct LithosAIBarApp: App {
             let forceSample = CommandLine.arguments.contains("--sample")
             Task {
                 let code = await PopoverRender.run(outputPath: output, forceSample: forceSample)
+                exit(code)
+            }
+        }
+        if let index = CommandLine.arguments.firstIndex(of: "--render-status"),
+           index + 1 < CommandLine.arguments.count {
+            let output = CommandLine.arguments[index + 1]
+            let forceSample = CommandLine.arguments.contains("--sample")
+            Task {
+                let code = await PopoverRender.runStatus(outputPath: output, forceSample: forceSample)
                 exit(code)
             }
         }
