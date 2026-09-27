@@ -5,6 +5,12 @@ at a glance, with today's usage, a token breakdown, and a per-model
 breakdown in the dropdown. It is a menu bar extra only — no Dock icon and no
 window.
 
+![Menu bar item](docs/menubar-clean.png)
+
+![Dropdown](docs/popover.png)
+
+The screenshots use sample values; the account line is a placeholder.
+
 ## Why it reads browser cookies
 
 LithosAI has no public usage or billing API keyed by the inference token. Spend
@@ -67,6 +73,7 @@ totals without launching the UI.
 | `VerifyCLI.swift` | `--verify` diagnostics |
 | `PopoverRender.swift` | `--render-popover` layout preview |
 | `Resources/` | Menu bar mark (template) and app icon |
+| `docs/` | Screenshots used above |
 
 ## Command line
 
@@ -76,6 +83,7 @@ The binary carries a few developer switches:
 |---|---|
 | `--verify` | print account, balance, and spend without the UI |
 | `--render-popover <path>` | render the dropdown to a PNG |
+| `--sample` | with the above, force sample data instead of live values |
 | `--install-login-item` | register the app to start at login |
 
 Run them from the installed bundle:

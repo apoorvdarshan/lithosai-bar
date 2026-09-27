@@ -6,16 +6,21 @@ import AppKit
 ///
 /// It uses real store data when the browser session is readable, and otherwise
 /// falls back to representative sample values so the layout can still be
-/// inspected on a machine without a LithosAI login.
+/// inspected on a machine without a LithosAI login. Pass `--sample` to force the
+/// sample data, which is what the README screenshot uses so no real account
+/// details are published.
 @MainActor
 enum PopoverRender {
-    static func run(outputPath: String) async -> Int32 {
+    static func run(outputPath: String, forceSample: Bool = false) async -> Int32 {
         let store = UsageStore()
-        await store.refresh()
-
-        if case .failed(let message) = store.state {
-            print("live data unavailable (\(message)); rendering sample values")
+        if forceSample {
             store.applyPreviewSample()
+        } else {
+            await store.refresh()
+            if case .failed(let message) = store.state {
+                print("live data unavailable (\(message)); rendering sample values")
+                store.applyPreviewSample()
+            }
         }
 
         let view = PopoverView(store: store)
@@ -45,28 +50,33 @@ enum PopoverRender {
 
 extension UsageStore {
     /// Fills the store with plausible numbers so the layout can be rendered
-    /// without a readable console session.
+    /// without a readable console session. The values are fixed rather than
+    /// random so the README screenshot is reproducible.
     func applyPreviewSample() {
         let calendar = Calendar.current
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
+
+        // A gentle two-week pattern with a busy day in the middle.
+        let spend = [0.18, 0.42, 0.31, 0.55, 0.24, 0.61, 0.38,
+                     0.29, 0.47, 0.22, 0.58, 0.35, 0.44, 0.52]
         var days: [LithosAIClient.DayTotal] = []
-        for offset in stride(from: 13, through: 0, by: -1) {
+        for (index, offset) in stride(from: 13, through: 0, by: -1).enumerated() {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: Date()) else { continue }
-            let spent = Double.random(in: 0.05...0.62)
+            let cost = spend[index % spend.count]
             days.append(
                 LithosAIClient.DayTotal(
                     day: formatter.string(from: date),
-                    cost: spent,
-                    inputTokens: Int64(Double.random(in: 2_000_000...18_000_000)),
-                    cachedTokens: Int64(Double.random(in: 5_000_000...42_000_000)),
-                    outputTokens: Int64(Double.random(in: 20_000...90_000))
+                    cost: cost,
+                    inputTokens: Int64(cost * 12_000_000),
+                    cachedTokens: Int64(cost * 42_000_000),
+                    outputTokens: Int64(cost * 130_000)
                 )
             )
         }
         let today = days.last
         applyPreview(
-            balance: 4.5,
+            balance: 42.10,
             today: today,
             daily: days,
             models: [

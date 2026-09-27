@@ -20,8 +20,9 @@ struct LithosAIBarApp: App {
         if let index = CommandLine.arguments.firstIndex(of: "--render-popover"),
            index + 1 < CommandLine.arguments.count {
             let output = CommandLine.arguments[index + 1]
+            let forceSample = CommandLine.arguments.contains("--sample")
             Task {
-                let code = await PopoverRender.run(outputPath: output)
+                let code = await PopoverRender.run(outputPath: output, forceSample: forceSample)
                 exit(code)
             }
         }

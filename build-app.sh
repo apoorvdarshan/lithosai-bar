@@ -107,10 +107,22 @@ codesign -dvv "$APP_DIR" 2>&1 | grep -E "Identifier|TeamIdentifier|Authority" | 
 
 echo "==> Installing to /Applications"
 DEST="/Applications/${APP_NAME}.app"
+# Stop the running copy first: replacing the bundle under a live process leaves a
+# stale menu bar item behind.
+pkill -f "${APP_NAME}.app/Contents/MacOS/LithosAIBar" 2>/dev/null || true
+sleep 1
 rm -rf "$DEST"
 # ditto preserves the signature and avoids re-adding xattrs.
 ditto "$APP_DIR" "$DEST"
 
 echo "==> Installed: $DEST"
+
+# Relaunch so the menu bar item is present as soon as the build finishes.
+# Skipped when NO_LAUNCH=1, which is useful for scripted builds.
+if [ "${NO_LAUNCH:-0}" != "1" ]; then
+    echo "==> Launching"
+    open "$DEST"
+fi
+
 echo
 echo "Run it with:  open \"$DEST\""
