@@ -24,9 +24,6 @@ struct PopoverView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     balanceBlock
                     usageBlock
-                    if !store.modelTotals.isEmpty {
-                        modelBlock
-                    }
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
@@ -86,22 +83,47 @@ struct PopoverView: View {
     // MARK: - Usage
 
     private var usageBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            UsageBar(
-                title: "Today",
-                amount: "$" + Money.precise(store.todayCost),
-                detail: "\(store.todayTokens.compactTokens) tokens",
-                fill: todayOfMonthFraction,
-                caption: "share of this month"
-            )
+        VStack(alignment: .leading, spacing: 14) {
+            todayBlock
 
+            // The only bar with a real ceiling: month spend measured against the
+            // credit still available. A ratio of two spend figures (today vs
+            // month) always saturates, so it says nothing; against the balance
+            // the fill is bounded and moves.
             UsageBar(
                 title: "This month",
                 amount: "$" + Money.precise(store.monthCost),
                 detail: "\(store.monthTokens.compactTokens) tokens",
-                fill: monthOfPeakFraction,
-                caption: "vs busiest day × 30"
+                fill: monthOfBudgetFraction,
+                caption: "of $\(Money.dollars(monthSpendPlusBalance)) used"
             )
+
+            if store.dailyTotals.count > 1 {
+                SpendSparkline(values: store.dailyTotals.map(\.cost))
+            }
+
+            if !store.modelTotals.isEmpty {
+                modelBlock
+            }
+        }
+    }
+
+    /// Today has no quota, so it is a plain figure rather than a fake-full bar.
+    private var todayBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Today")
+                    .font(.system(size: 12, weight: .medium))
+                Spacer()
+                Text("\(store.todayTokens.compactTokens) tokens")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            Text("$" + Money.precise(store.todayCost))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("Tokens today")
@@ -116,16 +138,15 @@ struct PopoverView: View {
         }
     }
 
-    /// There is no spend quota, so the bars are relative: today as a share of
-    /// this month so far, and the month against a nominal 30-day run rate.
-    private var todayOfMonthFraction: Double {
-        guard store.monthCost > 0 else { return 0 }
-        return min(store.todayCost / store.monthCost, 1)
+    /// Month spend plus the balance left is the credit that was available, so
+    /// spend as a share of it is a bounded fraction that reflects real progress.
+    private var monthSpendPlusBalance: Double {
+        store.monthCost + max(store.balance, 0)
     }
 
-    private var monthOfPeakFraction: Double {
-        let busiestDay = store.dailyTotals.map(\.cost).max() ?? 0
-        return min(store.monthCost / max(busiestDay * 30, 0.0001), 1)
+    private var monthOfBudgetFraction: Double {
+        guard monthSpendPlusBalance > 0 else { return 0 }
+        return min(store.monthCost / monthSpendPlusBalance, 1)
     }
 
     // MARK: - Models
@@ -230,11 +251,9 @@ struct PopoverView: View {
 
 // MARK: - Reusable pieces
 
-/// A single stacked bar showing where today's tokens went. Cached, input and
-    /// output are near-identical mid-blues otherwise, so the three steps are
-    /// spread across the tint ramp for legibility.
-    /// A titled bar with an amount on the right and a caption underneath, matching
-/// the CodexBar treatment of a usage window.
+/// A titled bar with an amount on the right and a caption underneath, matching
+/// the CodexBar treatment of a usage window. The fill should be a bounded
+/// fraction — a ratio of two spend figures saturates and reads as always full.
 struct UsageBar: View {
     let title: String
     let amount: String
@@ -276,6 +295,48 @@ struct UsageBar: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+        }
+    }
+}
+
+/// A compact 30-day spend trend. Where a single ratio bar cannot show "how am I
+/// going", this does: bar heights are relative to the busiest day, so no
+/// arbitrary ceiling is needed and the shape stays honest as volume changes.
+struct SpendSparkline: View {
+    /// Oldest to newest daily costs.
+    let values: [Double]
+
+    private var peak: Double { values.max() ?? 0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Last 30 days")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if let last = values.last {
+                    Text("$" + Money.precise(last) + " today")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .monospacedDigit()
+                }
+            }
+            GeometryReader { geometry in
+                let count = max(values.count, 1)
+                let spacing: CGFloat = 2
+                let barWidth = max(1, (geometry.size.width - spacing * CGFloat(count - 1)) / CGFloat(count))
+                HStack(alignment: .bottom, spacing: spacing) {
+                    ForEach(Array(values.enumerated()), id: \.offset) { _, value in
+                        let fraction = peak > 0 ? value / peak : 0
+                        Rectangle()
+                            .fill(Color.accentColor.opacity(0.35 + 0.65 * fraction))
+                            .frame(width: barWidth, height: max(2, geometry.size.height * fraction))
+                    }
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
+            }
+            .frame(height: 22)
         }
     }
 }
