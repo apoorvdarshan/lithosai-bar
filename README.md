@@ -1,9 +1,14 @@
 # LithosAI Bar
 
 A menu bar app for LithosAI spend: the provider mark plus your remaining balance
-at a glance, with today's usage, a token breakdown, and a per-model
-breakdown in the dropdown. It is a menu bar extra only — no Dock icon and no
-window.
+at a glance, with today's usage, a token breakdown, a 30-day spend trend, and a
+per-model breakdown in the dropdown. It is a menu bar extra only — no Dock icon
+and no window.
+
+The month figure has two readings, flipped from the dropdown's **Bar shows**
+row: **Spend** (the bar fills as you spend, the menu bar shows this month's
+cost) or **Remaining** (the bar drains as credit is used, the menu bar shows the
+balance left). The choice persists across launches.
 
 ![Menu bar item](docs/menubar-clean.png)
 
@@ -49,6 +54,24 @@ usage to be readable. Brave is tried first.
 
 The bundle is assembled in `build/` and installed with `ditto` so the signature
 survives the copy.
+
+### Release DMG
+
+```sh
+NOTARY_PROFILE=lithosai-notary ./build-dmg.sh
+```
+
+`build-dmg.sh` builds the app, wraps it in a drag-to-install DMG, signs the DMG,
+submits it to Apple's notary service, and staples the ticket so the download
+opens without a Gatekeeper warning. Store the notary credentials once:
+
+```sh
+xcrun notarytool store-credentials lithosai-notary \
+    --key AuthKey_XXXX.p8 --key-id XXXX --issuer <uuid>
+```
+
+Or pass an API key inline with `NOTARY_KEY`, `NOTARY_KEY_ID`, and
+`NOTARY_ISSUER`. Set `APP_VERSION` to stamp the release version.
 
 Headless data check, useful when the UI shows nothing:
 

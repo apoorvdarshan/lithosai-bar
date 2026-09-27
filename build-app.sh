@@ -6,6 +6,9 @@ cd "$(dirname "$0")"
 
 APP_NAME="LithosAI Bar"
 BUNDLE_ID="cloud.lithosai.bar"
+# Version stamped into Info.plist. Override for a release: APP_VERSION=1.1.0.
+APP_VERSION="${APP_VERSION:-1.0}"
+APP_BUILD="${APP_BUILD:-1}"
 BUILD_DIR=".build/release"
 # Assemble in a scratch dir under the repo. This lives outside iCloud now, but a
 # dedicated stage keeps the source tree clean and makes the xattr strip reliable.
@@ -72,9 +75,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>${APP_VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>${APP_BUILD}</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
