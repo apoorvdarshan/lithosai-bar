@@ -59,7 +59,8 @@ enum VerifyCLI {
                              day.totalTokens.compactTokens as NSString))
             }
             print("")
-            print("menu bar would show: $\(Money.dollars(billing.balance))")
+            print("menu bar would show: $\(Money.dollars(billing.balance)) (remaining)  /  " +
+                  "$\(Money.precise(monthDays.reduce(0) { $0 + $1.cost })) (spent this month)")
             return 0
         } catch {
             print("api:       FAILED")

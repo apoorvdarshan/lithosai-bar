@@ -26,6 +26,8 @@ enum PopoverRender {
         let view = PopoverView(store: store)
             .background(Color(nsColor: .windowBackgroundColor))
 
+        print("menu bar: \(store.menuBarValue) (\(store.barDirection.rawValue))")
+
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
 

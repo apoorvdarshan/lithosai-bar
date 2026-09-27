@@ -71,7 +71,17 @@ final class UsageStore {
         switch state {
         case .failed: return "!"
         case .loading, .idle: return "…"
-        case .loaded: return "$" + Money.dollars(balance)
+        case .loaded: return "$" + Money.dollars(menuBarAmount)
+        }
+    }
+
+    /// The figure beside the mark. Matches the bar's reading: `.remaining` shows
+    /// the balance still available, `.spent` shows what this month has cost so
+    /// far, so the menu bar and the dropdown tell the same story.
+    var menuBarAmount: Double {
+        switch barDirection {
+        case .remaining: return max(balance, 0)
+        case .spent: return monthCost
         }
     }
 
@@ -80,7 +90,8 @@ final class UsageStore {
         case .failed(let message): return "LithosAI: \(message)"
         case .loading, .idle: return "LithosAI: refreshing…"
         case .loaded:
-            return "LithosAI — balance $\(Money.dollars(balance)), today $\(Money.precise(todayCost))"
+            let reading = barDirection == .spent ? "spent this month" : "balance"
+            return "LithosAI — \(reading) $\(Money.dollars(menuBarAmount)), today $\(Money.precise(todayCost))"
         }
     }
 
