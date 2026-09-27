@@ -25,6 +25,24 @@ final class UsageStore {
         case failed(String)
     }
 
+    /// How the month bar reads. `.spent` fills as spend grows; `.remaining`
+    /// drains toward zero as credit is used, for people who think of the
+    /// balance as the thing being consumed.
+    enum BarDirection: String {
+        case spent
+        case remaining
+
+        var toggled: BarDirection { self == .spent ? .remaining : .spent }
+    }
+
+    private static let barDirectionKey = "barDirection"
+
+    var barDirection: BarDirection {
+        didSet {
+            UserDefaults.standard.set(barDirection.rawValue, forKey: Self.barDirectionKey)
+        }
+    }
+
     private(set) var state: State = .idle
     private(set) var balance: Double = 0
     private(set) var todayCost: Double = 0
@@ -41,6 +59,11 @@ final class UsageStore {
     private(set) var accountEmail: String = ""
     private(set) var keychainStatus: String = "not attempted"
     private(set) var needsFullDiskAccess = false
+
+    init() {
+        let stored = UserDefaults.standard.string(forKey: Self.barDirectionKey)
+        barDirection = stored.flatMap(BarDirection.init(rawValue:)) ?? .spent
+    }
 
     /// Menu bar title. The mark sits beside this, so keep it terse: a compact
 /// balance, and a warning glyph when the session cannot be read.

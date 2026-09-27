@@ -87,15 +87,15 @@ struct PopoverView: View {
             todayBlock
 
             // The only bar with a real ceiling: month spend measured against the
-            // credit still available. A ratio of two spend figures (today vs
-            // month) always saturates, so it says nothing; against the balance
-            // the fill is bounded and moves.
+            // credit available. A ratio of two spend figures (today vs month)
+            // always saturates, so it says nothing; against the balance the fill
+            // is bounded. `.spent` grows with usage, `.remaining` drains.
             UsageBar(
                 title: "This month",
                 amount: "$" + Money.precise(store.monthCost),
                 detail: "\(store.monthTokens.compactTokens) tokens",
-                fill: monthOfBudgetFraction,
-                caption: "of $\(Money.dollars(monthSpendPlusBalance)) used"
+                fill: monthBarFill,
+                caption: monthBarCaption
             )
 
             if store.dailyTotals.count > 1 {
@@ -144,9 +144,24 @@ struct PopoverView: View {
         store.monthCost + max(store.balance, 0)
     }
 
-    private var monthOfBudgetFraction: Double {
+    /// Fill height for the month bar. `.spent` fills up as spend grows;
+    /// `.remaining` is the complement, so the bar empties as credit is consumed.
+    private var monthBarFill: Double {
         guard monthSpendPlusBalance > 0 else { return 0 }
-        return min(store.monthCost / monthSpendPlusBalance, 1)
+        let spent = min(store.monthCost / monthSpendPlusBalance, 1)
+        switch store.barDirection {
+        case .spent: return spent
+        case .remaining: return 1 - spent
+        }
+    }
+
+    private var monthBarCaption: String {
+        switch store.barDirection {
+        case .spent:
+            return "of $\(Money.dollars(monthSpendPlusBalance)) used"
+        case .remaining:
+            return "$\(Money.dollars(max(store.balance, 0))) left"
+        }
     }
 
     // MARK: - Models
@@ -227,6 +242,13 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 0) {
             FooterButton(title: "Usage Dashboard", symbol: "chart.bar.xaxis") {
                 NSWorkspace.shared.open(URL(string: "https://console.lithosai.cloud")!)
+            }
+            FooterToggle(
+                title: "Bar shows",
+                value: store.barDirection == .spent ? "Spend" : "Remaining",
+                symbol: store.barDirection == .spent ? "chart.bar.fill" : "battery.50"
+            ) {
+                store.barDirection = store.barDirection.toggled
             }
             FooterButton(title: "Refresh", symbol: "arrow.clockwise", shortcut: "r") {
                 Task { await store.refresh() }
@@ -434,6 +456,43 @@ struct FooterButton: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+            .background(hovering ? Color.accentColor.opacity(0.15) : .clear)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+    }
+}
+
+/// A footer row that cycles a two-state setting in place: label on the left,
+/// current value plus a switch glyph on the right. Sits visually alongside
+/// `FooterButton` so the menu reads as one list.
+struct FooterToggle: View {
+    let title: String
+    let value: String
+    let symbol: String
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 11))
+                    .frame(width: 14)
+                Text(title)
+                    .font(.system(size: 12))
+                Spacer()
+                Text(value)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
